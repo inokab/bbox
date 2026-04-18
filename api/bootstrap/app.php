@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\CurrencyMismatchException;
 use App\Exceptions\InsufficientBalanceException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -41,6 +42,16 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (InsufficientBalanceException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            return null;
+        });
+
+        $exceptions->render(function (CurrencyMismatchException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'message' => $e->getMessage(),

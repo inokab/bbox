@@ -5,10 +5,12 @@ namespace App\Actions;
 use App\DTOs\TransactionData;
 use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
+use App\Exceptions\CurrencyMismatchException;
 use App\Exceptions\InsufficientBalanceException;
 use App\Models\Merchant;
 use App\Models\Transaction;
 use App\Services\ValidatorService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 readonly class CreateTransaction
@@ -20,6 +22,10 @@ readonly class CreateTransaction
      */
     public function handle(Merchant $merchant, TransactionData $data): Transaction
     {
+        if (isset($data->currency) && $data->currency !== $merchant->currency) {
+            throw new CurrencyMismatchException($merchant->currency, $data->currency);
+        }
+
         $existing = Transaction::where('idempotency_key', $data->idempotencyKey)->first();
 
         if ($existing) {
@@ -30,20 +36,24 @@ readonly class CreateTransaction
 
         $status = $validationResult->approved ? TransactionStatus::Approved : TransactionStatus::Rejected;
 
-        return DB::transaction(function () use ($merchant, $data, $status) {
-            if ($status === TransactionStatus::Approved) {
-                $this->applyBalanceChange($merchant, $data);
-            }
+        try {
+            return DB::transaction(function () use ($merchant, $data, $status) {
+                if ($status === TransactionStatus::Approved) {
+                    $this->applyBalanceChange($merchant, $data);
+                }
 
-            return Transaction::create([
-                'merchant_id'     => $merchant->id,
-                'idempotency_key' => $data->idempotencyKey,
-                'type'            => $data->type,
-                'amount'          => $data->amount,
-                'currency'        => $data->currency ?? $merchant->currency,
-                'status'          => $status,
-            ]);
-        });
+                return Transaction::create([
+                    'merchant_id'     => $merchant->id,
+                    'idempotency_key' => $data->idempotencyKey,
+                    'type'            => $data->type,
+                    'amount'          => $data->amount,
+                    'currency'        => $data->currency,
+                    'status'          => $status,
+                ]);
+            });
+        } catch (UniqueConstraintViolationException) {
+            return Transaction::where('idempotency_key', $data->idempotencyKey)->firstOrFail();
+        }
     }
 
     /**
