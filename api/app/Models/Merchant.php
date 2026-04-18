@@ -15,6 +15,11 @@ class Merchant extends Model
     use HasFactory;
     use HasUuids;
 
+    protected $attributes = [
+        'balance'  => 0,
+        'currency' => 'HUF',
+    ];
+
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
