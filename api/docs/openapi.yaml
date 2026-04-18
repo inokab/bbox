@@ -1,0 +1,219 @@
+openapi: 3.0.0
+info:
+  title: Payment API
+  version: 1.0.0
+  description: Simplified transaction management system for merchants.
+
+servers:
+  - url: http://localhost:8000/api
+    description: Local development
+
+tags:
+  - name: Merchants
+  - name: Transactions
+
+paths:
+  /merchants:
+    post:
+      summary: Create a merchant
+      tags: [Merchants]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required: [name, email]
+              properties:
+                name:
+                  type: string
+                  example: Teszt Bolt Kft.
+                email:
+                  type: string
+                  format: email
+                  example: teszt@bolt.hu
+                currency:
+                  type: string
+                  example: HUF
+                  default: HUF
+      responses:
+        '201':
+          description: Merchant created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Merchant'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /merchants/{merchantId}:
+    get:
+      summary: Get a merchant
+      tags: [Merchants]
+      parameters:
+        - $ref: '#/components/parameters/MerchantId'
+      responses:
+        '200':
+          description: Merchant found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Merchant'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /merchants/{merchantId}/transactions:
+    post:
+      summary: Create a transaction
+      tags: [Transactions]
+      parameters:
+        - $ref: '#/components/parameters/MerchantId'
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required: [type, amount]
+              properties:
+                type:
+                  type: string
+                  enum: [payment, refund]
+                  example: payment
+                amount:
+                  type: integer
+                  minimum: 1
+                  example: 10000
+                currency:
+                  type: string
+                  example: HUF
+                  default: HUF
+      responses:
+        '201':
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '200':
+          description: Duplicate request — existing transaction returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    get:
+      summary: List transactions for a merchant
+      tags: [Transactions]
+      parameters:
+        - $ref: '#/components/parameters/MerchantId'
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    MerchantId:
+      name: merchantId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      example: 019da054-bdf4-702d-88ba-7cfb5b6dd709
+
+  schemas:
+    Merchant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        balance:
+          type: integer
+          description: Balance in minor units (e.g. fillér)
+        currency:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        merchant_id:
+          type: string
+          format: uuid
+        idempotency_key:
+          type: string
+        type:
+          type: string
+          enum: [payment, refund]
+        amount:
+          type: integer
+          description: Amount in minor units (e.g. fillér)
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [approved, rejected]
+        created_at:
+          type: string
+          format: date-time
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Resource not found.
+
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Validation failed.
+              errors:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
