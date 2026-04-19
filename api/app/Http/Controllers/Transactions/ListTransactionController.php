@@ -10,7 +10,7 @@ class ListTransactionController extends Controller
 {
     public function __invoke(Merchant $merchant)
     {
-        $transactions = $merchant->transactions()->latest()->get();
+        $transactions = $merchant->transactions()->latest()->paginate(15);
 
         return response()->json(TransactionResource::collection($transactions));
     }
