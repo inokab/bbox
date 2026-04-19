@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\CurrencyMismatchException;
+use App\Exceptions\IdempotencyConflictException;
 use App\Exceptions\InsufficientBalanceException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -46,6 +47,16 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->json([
                     'message' => $e->getMessage(),
                 ], 422);
+            }
+
+            return null;
+        });
+
+        $exceptions->render(function (IdempotencyConflictException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                ], 409);
             }
 
             return null;

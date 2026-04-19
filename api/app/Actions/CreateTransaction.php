@@ -6,6 +6,7 @@ use App\DTOs\TransactionData;
 use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
 use App\Exceptions\CurrencyMismatchException;
+use App\Exceptions\IdempotencyConflictException;
 use App\Exceptions\InsufficientBalanceException;
 use App\Models\Merchant;
 use App\Models\Transaction;
@@ -29,7 +30,7 @@ readonly class CreateTransaction
         $existing = Transaction::where('idempotency_key', $data->idempotencyKey)->first();
 
         if ($existing) {
-            return $existing;
+            return $this->resolveExisting($existing, $merchant);
         }
 
         $validationResult = $this->validatorService->validate($merchant, $data);
@@ -53,7 +54,10 @@ readonly class CreateTransaction
                 ]);
             });
         } catch (UniqueConstraintViolationException) {
-            return Transaction::where('idempotency_key', $data->idempotencyKey)->firstOrFail();
+            return $this->resolveExisting(
+                Transaction::where('idempotency_key', $data->idempotencyKey)->firstOrFail(),
+                $merchant,
+            );
         }
     }
 
@@ -73,5 +77,17 @@ readonly class CreateTransaction
         } else {
             $merchant->increment('balance', $data->amount);
         }
+    }
+
+    /**
+     * @throws IdempotencyConflictException
+     */
+    private function resolveExisting(Transaction $existing, Merchant $merchant): Transaction
+    {
+        if ($existing->merchant_id !== $merchant->id) {
+            throw new IdempotencyConflictException();
+        }
+
+        return $existing;
     }
 }
