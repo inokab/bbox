@@ -35,4 +35,7 @@ return [
         ],
     ],
 
+    'validator' => [
+        'url' => env('VALIDATOR_URL'),
+    ]
 ];
