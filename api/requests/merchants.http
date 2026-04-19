@@ -1,0 +1,45 @@
+### Create merchant (HUF default)
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+
+{
+  "name": "Teszt Bolt Kft.",
+  "email": "teszt@bolt.hu"
+}
+
+> {%
+  client.global.set("merchantId", response.body.id);
+%}
+
+### Create merchant (EUR)
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+
+{
+  "name": "Euro Shop Zrt.",
+  "email": "euro@shop.hu",
+  "currency": "EUR"
+}
+
+### Create merchant – validation error (missing email)
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+
+{
+  "name": "Hiányzó Email Kft."
+}
+
+### Create merchant – duplicate email
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+
+{
+  "name": "Duplikált Email Kft.",
+  "email": "teszt@bolt.hu"
+}
+
+### Get merchant
+GET {{baseUrl}}/merchants/{{merchantId}}
+
+### Get merchant – not found
+GET {{baseUrl}}/merchants/00000000-0000-0000-0000-000000000000

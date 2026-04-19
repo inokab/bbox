@@ -1,0 +1,117 @@
+### Payment
+POST {{baseUrl}}/merchants/{{merchantId}}/transactions
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "type": "payment",
+  "amount": 10000
+}
+
+### Refund
+POST {{baseUrl}}/merchants/{{merchantId}}/transactions
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "type": "refund",
+  "amount": 5000
+}
+
+### Idempotent replay – 1. hívás (HTTP 201, tranzakció létrejön)
+POST {{baseUrl}}/merchants/{{merchantId}}/transactions
+Content-Type: application/json
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440002
+
+{
+  "type": "payment",
+  "amount": 1000
+}
+
+### Idempotent replay – 2. hívás (HTTP 200, ugyanaz a tranzakció jön vissza)
+POST {{baseUrl}}/merchants/{{merchantId}}/transactions
+Content-Type: application/json
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440002
+
+{
+  "type": "payment",
+  "amount": 1000
+}
+
+### Refund – insufficient balance
+POST {{baseUrl}}/merchants/{{merchantId}}/transactions
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "type": "refund",
+  "amount": 999999999
+}
+
+### Currency mismatch (merchant is HUF, transaction is EUR)
+POST {{baseUrl}}/merchants/{{merchantId}}/transactions
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "type": "payment",
+  "amount": 100,
+  "currency": "EUR"
+}
+
+### Validator unavailable – rejected státusz, egyenleg nem változik
+# Előfeltétel: docker compose stop validator
+# A tranzakció rejected státusszal és reason=validator_unavailable-lel kerül mentésre
+POST {{baseUrl}}/merchants/{{merchantId}}/transactions
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "type": "payment",
+  "amount": 10000
+}
+
+### Missing Idempotency-Key header
+POST {{baseUrl}}/merchants/{{merchantId}}/transactions
+Content-Type: application/json
+
+{
+  "type": "payment",
+  "amount": 10000
+}
+
+### Validation error – invalid type
+POST {{baseUrl}}/merchants/{{merchantId}}/transactions
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "type": "transfer",
+  "amount": 10000
+}
+
+### Validation error – zero amount
+POST {{baseUrl}}/merchants/{{merchantId}}/transactions
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "type": "payment",
+  "amount": 0
+}
+
+### Merchant not found
+POST {{baseUrl}}/merchants/00000000-0000-0000-0000-000000000000/transactions
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "type": "payment",
+  "amount": 10000
+}
+
+### List transactions
+GET {{baseUrl}}/merchants/{{merchantId}}/transactions
+
+### List transactions – merchant not found
+GET {{baseUrl}}/merchants/00000000-0000-0000-0000-000000000000/transactions
