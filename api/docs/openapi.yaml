@@ -2,7 +2,6 @@ openapi: 3.0.0
 info:
   title: Payment API
   version: 1.0.0
-  description: Simplified transaction management system for merchants.
 
 servers:
   - url: http://localhost:8000/api
@@ -33,8 +32,8 @@ paths:
                   example: teszt@bolt.hu
                 currency:
                   type: string
-                  example: HUF
                   default: HUF
+                  example: HUF
       responses:
         '201':
           description: Merchant created
@@ -92,7 +91,6 @@ paths:
                 currency:
                   type: string
                   example: HUF
-                  default: HUF
       responses:
         '201':
           description: Transaction created
@@ -107,7 +105,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Transaction'
         '422':
-          $ref: '#/components/responses/ValidationError'
+          description: Validation or business rule error
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ValidationErrorBody'
+                  - $ref: '#/components/schemas/BusinessErrorBody'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -156,7 +160,6 @@ components:
           format: email
         balance:
           type: integer
-          description: Balance in minor units (e.g. fillér)
         currency:
           type: string
         created_at:
@@ -174,12 +177,12 @@ components:
           format: uuid
         idempotency_key:
           type: string
+          format: uuid
         type:
           type: string
           enum: [payment, refund]
         amount:
           type: integer
-          description: Amount in minor units (e.g. fillér)
         currency:
           type: string
         status:
@@ -188,6 +191,28 @@ components:
         created_at:
           type: string
           format: date-time
+
+    ValidationErrorBody:
+      type: object
+      required: [message, errors]
+      properties:
+        message:
+          type: string
+          example: Validation failed.
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    BusinessErrorBody:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: Insufficient balance for this refund.
 
   responses:
     NotFound:
@@ -206,14 +231,4 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              message:
-                type: string
-                example: Validation failed.
-              errors:
-                type: object
-                additionalProperties:
-                  type: array
-                  items:
-                    type: string
+            $ref: '#/components/schemas/ValidationErrorBody'

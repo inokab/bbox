@@ -26,7 +26,7 @@ class TransactionFactory extends Factory
             'amount'          => fake()->numberBetween(100, 100_000),
             'currency'        => 'HUF',
             'status'          => TransactionStatus::Approved,
-            'metadata'        => null,
+            'reason'          => null,
         ];
     }
 

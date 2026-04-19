@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\TransactionType;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -35,8 +36,14 @@ class StoreTransactionRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            if (empty($this->header('Idempotency-Key'))) {
+            $key = $this->header('Idempotency-Key');
+
+            if (empty($key)) {
                 $validator->errors()->add('idempotency_key', 'The Idempotency-Key header is required.');
+            }
+
+            if (!Str::isUuid($key)) {
+                $validator->errors()->add('idempotency_key', 'The Idempotency-Key header must be a valid UUID.');
             }
         });
     }

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->bigInteger('amount');
             $table->char('currency', 3);
             $table->string('status');
-            $table->json('metadata')->nullable();
+            $table->string('reason')->nullable();
             $table->timestamps();
         });
     }

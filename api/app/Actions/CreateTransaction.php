@@ -37,7 +37,7 @@ readonly class CreateTransaction
         $status = $validationResult->approved ? TransactionStatus::Approved : TransactionStatus::Rejected;
 
         try {
-            return DB::transaction(function () use ($merchant, $data, $status) {
+            return DB::transaction(function () use ($merchant, $data, $status, $validationResult) {
                 if ($status === TransactionStatus::Approved) {
                     $this->applyBalanceChange($merchant, $data);
                 }
@@ -49,6 +49,7 @@ readonly class CreateTransaction
                     'amount'          => $data->amount,
                     'currency'        => $data->currency,
                     'status'          => $status,
+                    'reason'          => $validationResult->reason,
                 ]);
             });
         } catch (UniqueConstraintViolationException) {
